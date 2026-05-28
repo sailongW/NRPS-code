@@ -1,0 +1,24 @@
+# Core Deep Learning Framework
+torch==2.8.0
+pytorch-lightning>=2.0.0
+
+# Data Processing
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Bioinformatics
+biopython>=1.79
+
+# Natural Language Processing
+transformers==4.35.2
+tokenizers>=0.13.0
+
+# Machine Learning Tools
+scikit-learn>=1.0.0
+torchmetrics>=0.9.0
+
+# Web Application
+Flask>=2.0.0
+Flask-Cors>=3.0.10
+
+

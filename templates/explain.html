@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型解释</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">模型解释</h1>
+        
+        <h2>Domain 序列</h2>
+        <div class="card mb-4">
+            <div class="card-body">
+                <pre>{{ domain_seq }}</pre>
+            </div>
+        </div>
+        
+        <h2>特征重要性</h2>
+        <div class="card mb-4">
+            <div class="card-body">
+                <p class="mb-4">特征重要性图展示了A结构域序列中每个氨基酸残基对模型预测结果的贡献程度。</p>
+                <ul class="mb-4">
+                    <li><strong>高度</strong>：柱状图的高度表示该残基的重要性得分</li>
+                    <li><strong>颜色</strong>：使用青绿色表示，颜色深浅与重要性成正比</li>
+                    <li><strong>解读</strong>：得分较高的残基通常位于底物结合口袋或催化中心，对底物识别起关键作用</li>
+                    <li><strong>应用</strong>：通过分析重要残基，可以指导A结构域的定向进化和底物特异性改造</li>
+                </ul>
+                <canvas id="importanceChart" width="800" height="400"></canvas>
+            </div>
+        </div>
+        
+        <h2>Grad-CAM 热图</h2>
+        <div class="card mb-4">
+            <div class="card-body">
+                <p class="mb-4">Grad-CAM热图展示了模型在预测过程中关注的序列区域，通过梯度加权的方式可视化模型的注意力焦点。</p>
+                <ul class="mb-4">
+                    <li><strong>高度</strong>：柱状图的高度表示模型对该位置的关注程度</li>
+                    <li><strong>颜色</strong>：使用红色表示，颜色透明度与关注程度成正比（越不透明表示关注度越高）</li>
+                    <li><strong>解读</strong>：高关注区域通常包含对底物识别至关重要的氨基酸残基</li>
+                    <li><strong>应用</strong>：帮助理解模型的决策过程，验证模型是否关注了生物学上相关的区域</li>
+                </ul>
+                <canvas id="camChart" width="800" height="200"></canvas>
+            </div>
+        </div>
+        
+        <a href="/" class="btn btn-primary">返回上传页面</a>
+    </div>
+    
+    <script>
+        // 特征重要性数据
+        var importanceData = {{ explanation.feature_importance.importance|tojson }};
+        var tokens = {{ explanation.feature_importance.tokens|tojson }};
+        
+        // 限制数据长度
+        if (importanceData.length > 100) {
+            importanceData = importanceData.slice(0, 100);
+            tokens = tokens.slice(0, 100);
+        }
+        
+        // 创建特征重要性图表
+        var importanceCtx = document.getElementById('importanceChart').getContext('2d');
+        new Chart(importanceCtx, {
+            type: 'bar',
+            data: {
+                labels: tokens,
+                datasets: [{
+                    label: 'Feature Importance',
+                    data: importanceData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 90,
+                            minRotation: 90
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Grad-CAM 数据
+        var camData = {{ explanation.grad_cam|tojson }};
+        
+        // 限制数据长度
+        if (camData.length > 100) {
+            camData = camData.slice(0, 100);
+        }
+        
+        // 创建 Grad-CAM 图表
+        var camCtx = document.getElementById('camChart').getContext('2d');
+        new Chart(camCtx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: camData.length}, (_, i) => i + 1),
+                datasets: [{
+                    label: 'Grad-CAM Score',
+                    data: camData,
+                    backgroundColor: function(context) {
+                        var value = context.dataset.data[context.dataIndex];
+                        var alpha = value;
+                        return `rgba(255, 99, 132, ${alpha})`;
+                    },
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
